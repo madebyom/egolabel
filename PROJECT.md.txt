@@ -1,0 +1,246 @@
+EgoLabel: Project Spec for the Meta Global AI Developer Hackathon
+Prepared 27 October 2026 · Indie developer track · Build window closes 4 November 2026
+1. One-line pitch
+EgoLabel turns raw first-person (egocentric) video into robot-ready labels: task steps, hand and object masks, and hand-object contact. It does this automatically, then asks a human to review only the parts the AI is unsure about.
+Hackathon fit
+• Theme: Push the Frontier (physical AI and robotics data). Confirm the exact theme names on the submission form.
+• Track: Indie developer.
+• Meta products used together: SAM 3.1 (hand and object masks, tracking through video) and Muse Wonder (watches the video and writes the step timeline). Muse Spark is an optional cheap helper for cleanup.
+2. The problem in plain words
+Robotics companies train robots from first-person video of people doing tasks. Humans currently label that video by hand: when each step starts and ends, where the hands and objects are, and whether a hand is touching an object. One vendor estimates hand-object labeling costs 15 to 30 times the length of the video. Hand-object contact is the most important label and the one most often done wrong. EgoLabel cuts the manual work and shows how accurate the AI actually is.
+3. What the judges must see (90-second demo)
+1. Upload a 30 to 60 second first-person clip (for example, making tea).
+2. Within about a minute the screen shows the video with colored hand and object outlines, and a timeline of steps underneath.
+3. Some steps are flagged yellow: AI unsure, please review.
+4. The reviewer fixes one flagged step in two clicks.
+5. Click Export: a clean labels file downloads.
+6. Final slide: measured accuracy against human labels, and time saved (see section 7).
+Why this earns points: it is visual (outlines moving on video), it works end to end, it uses two Meta models together, and it reports real accuracy numbers instead of only claiming it works.
+4. Scope
+Must have (the MVP)
+• Upload one video, process it, show the results.
+• Step timeline from Muse Wonder.
+• Hand masks and object masks from SAM 3.1, shown over the video.
+• Contact on/off estimate for each step.
+• Flag uncertain items for review. The reviewer can edit label text and step times.
+• Export labels as JSON.
+• Accuracy report on 3 to 5 clips you labeled by hand.
+Should have (only if the MVP is stable by 1 November)
+• Second processing run for disagreement checks (see section 5).
+• CSV export.
+• Side-by-side view: AI labels vs human labels.
+Will not do
+• No 3D, depth, eye-gaze or sensor data.
+• No user accounts, payments, databases or cloud hosting. Run it on your own laptop.
+• No training of any robot model.
+• No marketplace or agency features. That is a later business, not this build.
+5. How it works
+1. Upload. The user picks a clip. The app saves it locally.
+2. Frame extraction. A free tool called ffmpeg pulls out frames at 2 per second, each with its timestamp.
+3. Step timeline (Muse Wonder). Send the video, or the timestamped frames if video upload is not supported, with a prompt asking for task steps as structured data: start time, end time, short label, objects involved.
+4. Masks (SAM 3.1). Ask SAM 3.1 to outline hand and each object name that Muse Wonder mentioned, then track them through the frames. If text prompts are not supported, use point or box prompts instead. Check the docs.
+5. Contact estimate. Rule: if a hand outline touches or overlaps an object outline for 3 or more sampled frames in a row, call it contact. For unclear cases, ask Muse Wonder about that key frame: is the hand touching the object?
+6. Flagging. Mark a step needs_review if any one of these is true: (a) two separate Muse Wonder runs, using different frame sampling, disagree on that step; (b) SAM loses the object or the outline size jumps suddenly; (c) contact is borderline. Do not rely on the model's own confidence numbers. Agreement between runs is more trustworthy.
+7. Review screen. Video player, timeline, outline overlay, flagged items in yellow, edit and accept buttons.
+8. Export. One JSON file per clip.
+6. Output format (what the exported file contains)
+• clip_id and duration
+• steps: id, start time, end time, label, objects, needs_review (yes or no), reviewer_edited (yes or no)
+• contact_events: start time, end time, which hand, which object, needs_review
+• review summary: number of edits, seconds spent reviewing
+7. Evaluation: what turns this from a demo into evidence
+Record 5 clips. Label 3 to 5 of them by hand first. This is your ground truth. Then measure:
+• Step boundary error: average seconds between the AI step times and your step times.
+• Step label match: percent of steps where the AI label means the same as yours.
+• Contact accuracy: percent of 1-second checkpoints where AI contact on/off matches yours.
+• Time saved: stopwatch one clip labeled from scratch vs the same clip reviewed after the AI. Write both numbers down.
+Report the numbers honestly, even if they are mediocre. Judges trust a tool that shows its weak spots more than one that claims to be perfect. Also list 2 or 3 failure examples and what you would fix next.
+8. Technology choices (kept simple on purpose)
+• Backend: Python with FastAPI.
+• Video tool: ffmpeg.
+• Screen: one HTML page with plain JavaScript (video player plus a canvas layer for outlines). If this takes more than a day, fall back to Streamlit.
+• Storage: plain files on disk. Save every API result to disk so the demo never depends on live API calls.
+• Meta access: Meta Model API. Reported model IDs are muse-wonder-1.0 and muse-spark-1.3, and the reported base URL is https://api.meta.ai/v1. Treat these as unverified and check the official docs first. Each participant reportedly gets 150 dollars of credits, and costs for short clips should be small.
+9. Data plan
+• Record 5 to 8 clips of 30 to 60 seconds with a phone strapped to your chest or head. One simple tabletop task each: making tea, packing a small box, folding a towel, assembling a simple object, cooking something easy.
+• Use good light, keep hands clearly visible, and avoid other people's faces.
+• Use clips you recorded yourself. Public datasets such as Ego4D and EPIC-Kitchens come with licenses, so skip them unless you read the terms.
+• Hand-label 3 to 5 of your clips in a spreadsheet: step start, step end, label, and contact on/off at 1-second marks.
+10. Day-by-day plan
+• 27 Oct: Check the rules and docs (section 11). Get the API key. Get one working call to Muse Wonder and one to SAM 3.1. Record the first clips.
+• 28 Oct: Frame extraction, then the Muse Wonder step timeline printing on screen.
+• 29 Oct: SAM 3.1 masks on key frames, then tracking. Add the contact rule.
+• 30 Oct: Review screen with video, timeline and overlay.
+• 31 Oct: Flagging, editing and JSON export. Hand-label the ground-truth clips.
+• 1 Nov: Run the evaluation. Feature freeze at the end of the day.
+• 2 Nov: Bug fixes only. Record the demo video. Write the README and submission text.
+• 3 Nov: Submit. Do not wait for the last day.
+• 4 Nov: Spare day for problems. The deadline reportedly falls on 4 or 5 November, so confirm the exact time.
+• 9 Nov: Live final if you reach the top 5. Rehearse using cached results and a backup video.
+11. Verify on day one
+• Exact submission deadline and time zone.
+• Theme names on the form, and which theme to pick.
+• Whether SAM 3.1 accepts video or only images, and whether it takes text prompts.
+• Whether Muse Wonder accepts video files through the API or only images.
+• Rate limits and credit balance.
+• Whether Muse Wonder is covered by the hackathon credits.
+• Whether the repo must be public, and what the demo video must contain.
+If SAM 3.1 or Muse Wonder cannot do what this spec assumes, tell your coding assistant straight away and use the fallbacks in section 12.
+12. Risks and fallbacks
+Risk
+Fallback
+Hand outlines are unstable when hands move fast
+Process at 4 frames per second only during contact steps, and show outlines as suggested
+Muse Wonder timestamps are off
+Send 1-frame-per-second contact sheets with large timestamps burned in, and ask in chunks of 20 seconds
+API is slow or rate-limited during the demo
+Pre-run every demo clip and load the saved results
+Contact rule is wrong too often
+Show contact as suggested, make review of it one click, and report the accuracy honestly
+The screen takes too long to build
+Use Streamlit and keep one screen
+Running out of time
+Cut the Should-have items first, never the evaluation
+13. Prompts for your AI coding assistant
+Paste this whole spec first, then give the prompts one at a time.
+Master prompt
+You are my senior engineer. I am a beginner. Build EgoLabel exactly as described in the attached spec. Rules: keep it simple; make one small change at a time; after each step tell me exactly what to run and what I should see; save every API response to disk; never invent API details, read the official Meta Model API docs I paste and ask me when unsure; explain any error in plain language and then fix it. Start with step 1 only.
+Step prompts
+1. Set up the project folder and a script that sends one test request to Muse Wonder and one to SAM 3.1 using the docs I paste. Print the raw results.
+2. Add ffmpeg frame extraction at 2 frames per second with timestamps. Send the frames to Muse Wonder and return the step timeline as structured data using the format in section 6.
+3. Add SAM 3.1 hand and object masks, tracked across frames and saved as files. Add the contact rule from section 5.
+4. Build the review page: video player, timeline, outline overlay, yellow flags, and edit and accept buttons.
+5. Add the flagging rules from section 5 and the JSON export.
+6. Write an evaluation script that compares the AI output with my hand labels using the four measures in section 7.
+7. Cache everything so the demo works offline, then write the README.
+14. Submission checklist
+• Theme named clearly. Meta models listed, with where each one is used.
+• Working demo plus a 90-second demo video.
+• README: the problem, how it works, how to run it, evaluation numbers, and known limits.
+• Repo public if required.
+• Only work done during the event is shown.
+• Submit a day early.
+
+
+
+
+EgoLabel Build Playbook: Day-by-Day Plan and Prompts
+Prepared 28 October 2026 · Build window 28 Oct to 1 Nov · Overflow, demo video and submission 2 to 4 Nov. This schedule replaces the dates in the first spec.
+1. Ground rules
+1. No faked output. Every result shown in the final app is produced by the real pipeline on a real clip. Anything not built yet is labeled placeholder and never presented as a result.
+2. Real thin slice first, then deeper. By the end of Day 2 one real clip must pass through the real Meta models and return real JSON. Every later day deepens that working system. Nothing in it is simulated.
+3. One task per prompt. Run it, test it, commit to git, then move on. Never ask the agent for the whole app at once.
+4. The API key lives only in .env.local and in Vercel environment settings. Never paste it into a prompt, a chat or a repo file. If it leaks, rotate it immediately.
+5. Every evening write down the credit balance, what works and what is broken. Paste that into the next morning's session.
+6. Cut order if time runs out: first the trained contact scorer (keep the rule-based one), then report page polish, then CSV export. Never cut: the real pipeline, the review screen, JSON export, and a held-out benchmark with honest numbers.
+7. Coding tool ladder, so a quota lockout cannot stop the build: (a) Antigravity free tier as the main builder; (b) when its quota runs out, paste the same prompt into the Claude chat and apply the code yourself; (c) Google AI Pro for one month (about 20 dollars) if a lockout hits mid-build; (d) Muse Code paid from Meta credits only as a last resort, hard cap 20 dollars total. On Day 1, check the quota meter in Antigravity and write down how many prompts you get.
+8. Send fewer, bigger, well-specified prompts. Do not spend quota on cosmetic tweaks before Day 4.
+2. Facts from Meta's docs, and what is still unverified
+From Meta's docs pages (dev.meta.ai/docs/overview, /docs/models, /docs/pricing-rate-limits), found 28 Oct:
+• Base URL https://api.meta.ai/v1 with a Bearer key.
+• muse-wonder-1.0 takes text, image, video, audio and PDF and returns text. It has a 1,048,576-token context window, always reasons, and has reasoning effort levels from minimal to max. Price: 4 dollars per million input tokens, 0.20 cached input, 20 output. Standard mode only.
+• Muse Spark (for example muse-spark-1.2) also takes video input and is cheaper: 1.25 input and 4.25 output per million tokens on the Standard tier. The contributor variants are cheaper still, but Meta may train on your prompts, so do not use them.
+• sam-3.1: POST /v1/responses; upload clips with POST /v1/files; a short noun phrase prompt per request; returns boxes and masks and follows objects across video frames. Price: 0.20 dollars per 1,000 video frames, and each video request is billed at least 50 frames.
+• Rate limits: 3,000 requests per minute per team per model.
+Unverified, test on Day 1:
+• Exact request and response shapes. The agent must read the docs and not guess.
+• Wonder tokens per second of video, latency, and whether reasoning tokens inflate the bill (check the usage field).
+• Files API size limit, and whether SAM bills frames at the native frame rate (we downsample to 6 fps before upload to be safe).
+• Vercel Hobby limits: reported 300 seconds function time and 4.5 MB request body, personal and non-commercial use only. Check Vercel's current docs.
+• That your 150 dollar credit covers Wonder, Spark and SAM. Check the dashboard.
+3. Which models we use, and why no fine-tuning
+• Perception and labeling: Meta models only, called through the API. Muse Wonder writes the step timeline and answers contact questions on hand crops. SAM 3.1 finds and tracks hands and objects. Muse Spark is a second, cheaper opinion on the step timeline.
+• Our own small logic: voting, rules, thresholds, and one small classifier (logistic regression or similar) that decides hand-object contact from numbers the Meta models produce. This is our code, not a Meta model. The report must say so.
+• No fine-tuning. I found nothing showing that the Meta Model API offers fine-tuning for Wonder or SAM, so do not plan on it. SAM 3.1 weights are open, but fine-tuning them needs a GPU, a labeled training set far larger than 10 clips, and days of work we do not have. Accuracy comes from the levers in section 7 instead: closed vocabulary, examples in the prompt, hand crops, two-model agreement, the small contact classifier, and routing by trust score.
+4. Architecture
+• Browser: the user picks a clip. The browser re-encodes it to about 540p, 6 fps, no audio, target 4 MB or less. That fits Vercel's request limit and keeps SAM billing low.
+• Vercel API routes (Next.js, TypeScript): upload to the Meta Files API; call Wonder and Spark for steps; call SAM once per phrase (hand, plus each object from the step list) in parallel; return results. The key stays on the server.
+• Quality engine (TypeScript): agreement checks, contact rule, scorer weights loaded from a JSON file, flagging and routing.
+• Lab (Python, on your laptop): runs the benchmark on the 10 clips, caches every API response, computes metrics, trains the contact classifier, and writes config JSON that the app loads.
+• Storage: no database. Live sessions use browser storage. Sample clips and their real results are static files in the repo.
+• If compression hurts accuracy: upload with Vercel Blob (check its free allowance) and let the server stream the file to Meta.
+5. Day-by-day plan
+Day 1 · Wed 28 Oct · Setup, API truth, data
+1. Install Node.js LTS, Git, Python 3.12 and Antigravity. Create a public GitHub repo named egolabel. Sign in to Vercel with GitHub.
+2. Create the Meta API key at dev.meta.ai and put it in .env.local as META_API_KEY. Add .env.local to .gitignore before the first commit.
+3. Save the first spec and this playbook in the repo as PROJECT.md.
+4. Run Prompt 0 (rules), then Prompt 1 (API probe). Save the findings in docs/api-findings.md. Send me the numbers (tokens per clip, SAM frames billed, latency, Antigravity quota) and I will recompute the budget.
+5. Run Prompt 2 (skeleton) and deploy to Vercel. Open the live URL in a private window.
+6. Record 10 clips (section 6) and start labeling ground truth.
+Done when: api-findings.md has real numbers, an empty app is live on a vercel.app URL, 10 clips are recorded. Cumulative spend cap: 5 dollars.
+Day 2 · Thu 29 Oct · Real pipeline on one clip
+1. Run Prompts 3, 4, 5 and 6 in order. After each, test on one clip and commit.
+2. Hand-label clips 1 to 5. Then run Prompt 4b (raw-model baseline) and the pipeline built so far on the same 3 clips, and compare the numbers. If our pipeline does not clearly beat the raw model on contact or step timing, stop and tell me before starting Day 3.
+Done when: one real clip produces steps, masks and contact events as JSON in the repo, and the deployed app can trigger the process. Baseline and pipeline numbers on 3 clips are recorded. Cap: 20 dollars.
+Day 3 · Fri 30 Oct · Review screen and quality engine
+1. Open the mockup link, take a screenshot, and attach it to Prompt 7. Run Prompts 7, 8 and 9.
+2. Run Prompt 10 (quality engine).
+3. Hand-label clips 6 to 10.
+Done when: the deployed app shows a real processed clip with outlines synced to the video, step list, accept and edit, JSON export, and flags from the quality engine. Cap: 35 dollars.
+Day 4 · Sat 31 Oct · Benchmark and live upload
+1. Run Prompt 11 (benchmark) and run it on the 5 tuning clips only. Record the numbers exactly as they come.
+2. Run Prompt 12 (live upload with protections).
+3. Run Prompt 13 (error analysis) and pick the top 2 error types.
+Done when: a results file shows the four metrics and the baseline, and live upload works on the deployed app. Cap: 75 dollars.
+Day 5 · Sun 1 Nov · Accuracy, report, freeze
+1. Fix the top error types with prompt changes and Prompt 14 (contact classifier). Re-run the tuning benchmark after each change and keep a table: change, metric before, metric after.
+2. Run the test-clip benchmark once with the final flag and record the numbers as they are.
+3. Run Prompt 15 (report page and provenance) and Prompt 16 (README and release check).
+4. Freeze features at 9 pm.
+Done when: public repo, live link works in a private window, README numbers match the saved benchmark file. Cap: 120 dollars.
+After the build
+• Mon 2 Nov: morning is overflow for anything unfinished from Day 5, bug fixes only. Afternoon: record the 2-minute demo video and rehearse the live demo three times with cached results and a backup video.
+• Tue 3 Nov: submit. Wed 4 Nov: buffer. 9 Nov: live final if you reach the top 5.
+Honest note: Day 3 and Day 5 are heavy for a first-time builder. If you are more than half a day behind at the end of Day 3, tell me and we decide what to cut using rule 6.
+6. Data and labeling
+Closed vocabulary (starter, adjust to what you can film):
+• Make tea: pick up kettle, pour water into mug, place kettle down, open tea box, place tea bag in mug, stir with spoon. Objects: kettle, mug, tea box, tea bag, spoon.
+• Pack a box: open box flaps, pick up item, place item in box, close flaps, apply tape. Objects: box, item, tape.
+• Fold a towel: pick up towel, spread towel flat, fold in half, fold in thirds, place on stack. Object: towel.
+Filming: phone on chest or head, landscape, 1080p, good light, hands in view, 30 to 45 seconds, no other people. Record 10 clips, about 3 per task, mixing speed and lighting. If you can get access, also record 2 or 3 clips in a real workshop, shop or kitchen with messy light, label them too, and report them separately as a harder set. Clips 1 to 5 are the tuning set and clips 6 to 10 are the test set. Never tune on test clips.
+Ground truth sheet 1 columns: clip_id, step_label, start_s, end_s. Sheet 2 columns: clip_id, second, hand_object_contact (yes or no), object. Label contact at every 1-second mark. Budget about 2 hours for 10 clips.
+7. How accuracy is measured and improved
+Measures: median step boundary error in seconds; step label match percent; contact balanced accuracy and F1 at 1-second marks, next to a baseline that always guesses the most common answer; coverage (percent auto-accepted); selective accuracy (accuracy on auto-accepted items).
+Every metric is also reported for the raw-model baseline: one plain prompt to Muse Wonder, with no vocabulary, no second model and no crops. The gap between the raw model and our pipeline is the evidence that our work adds value. If the gap is small, say so.
+The 95 percent claim means accuracy on auto-accepted items at or above 95 percent on the test clips, with coverage reported next to it. Fully automatic accuracy is reported separately. If any figure falls short, report the real figure.
+Levers, in order of expected gain: closed vocabulary; two-model agreement (Wonder and Spark) instead of one; hand crops for contact questions; examples of each step in the prompt; a small trained contact classifier; threshold chosen on tuning clips; error analysis loop where reviewer corrections become prompt examples.
+8. Prompt pack
+Paste Prompt 0 at the start of every session. Replace anything in [brackets].
+Prompt 0: Master rules (also save as AGENTS.md in the repo)
+You are my senior engineer on a hackathon project called EgoLabel. I am a beginner, so explain every command you ask me to run and what I should see. Rules: (1) Never invent API request or response formats; read the official Meta Model API docs at dev.meta.ai/docs and tell me when something is unclear. (2) Never print, log or commit the API key; it lives in .env.local. (3) No fake or hardcoded results: every result must come from the real pipeline or be labeled placeholder. (4) Work on one task at a time, keep changes small, and tell me what to test before you continue. (5) Save every API response to disk under data/cache so we never pay twice for the same call. (6) Use TypeScript for the web app and Python only for the lab scripts. (7) After each task, write a short summary and a git commit message. Project spec: PROJECT.md.
+Prompt 1: API probe
+Task: write two small scripts, one in Node and one in Python, that test the Meta Model API with my key from .env.local. (a) Upload a short video from data/clips to the Files API. (b) Ask muse-wonder-1.0 to list the steps visible in the video as JSON, with reasoning effort set as low as allowed. (c) Ask a Standard-tier Muse Spark model the same question. (d) Ask sam-3.1 to segment the phrase hand in the same video. Print for each call: latency, the usage fields from the response (tokens or frames billed), and the first 500 characters of the output. Save raw responses in data/cache. Then write docs/api-findings.md listing exactly which request shapes worked, size limits you hit, and the cost of each call. Do not guess formats; read the docs first and show me the doc page you used.
+Prompt 2: Skeleton and deploy
+Task: create a Next.js app (TypeScript, App Router, Tailwind, shadcn/ui) in this repo. Create empty routes /api/upload, /api/wonder and /api/sam that return clear not-implemented messages. Add a home page that says EgoLabel. Add a .env.example listing META_API_KEY. Make sure .env.local is gitignored. Then explain step by step how to push to GitHub and deploy to Vercel (Hobby plan), including where to set META_API_KEY in Vercel settings. Do not add features beyond this.
+Prompt 3: Video preparation and upload
+Task: build client-side video preparation and the upload path. In the browser, re-encode the user's clip to about 540p, 6 frames per second, no audio, targeting 4 MB or less (try ffmpeg.wasm; if that is too slow or heavy, propose an alternative before building it). Show a progress bar. Then send the file to /api/upload, which must forward it to the Meta Files API and return the file id. Handle: files that are too large, unsupported formats, network errors, and clips longer than 60 seconds, each with a clear message. Test with data/clips/clip01.mp4 and tell me the final file size. Vercel Hobby limits the request body to about 4.5 MB; if our output exceeds it, stop and tell me.
+Prompt 4: Step timeline from two models
+Task: implement /api/wonder. Input: an uploaded file id and a task name. Use the closed vocabulary in config/vocabulary.json (I will provide it): each step label must come only from that list for the chosen task. Ask muse-wonder-1.0 for JSON: steps with start_s, end_s, label and objects. Run a second opinion with a Standard-tier Muse Spark model using the same schema. Validate the JSON strictly and retry once on invalid output. Use the lowest reasoning effort that still works and report cost per call. Store both runs under data/cache. Test on clip01 and show the results next to my hand labels in data/ground_truth.
+Prompt 4b: Raw-model baseline
+Task: write lab/baseline.py that gives the raw model its best simple chance. For each tuning clip, send the whole clip to muse-wonder-1.0 with ONE plain prompt: list the steps with start and end times, and the hand-object contact at each second. No closed vocabulary, no second model, no hand crops, no SAM, no scoring logic. Save outputs under data/cache/baseline. Score them with the same metrics and ground truth as benchmark.py. For scoring only, map each free-text label to the nearest vocabulary item by meaning and show me every mapping. Print a table next to our pipeline's numbers and report the cost per clip.
+Prompt 5: SAM masks
+Task: implement /api/sam. Input: file id and one short noun phrase. Call sam-3.1 once per phrase, following the docs exactly. For each clip, run phrases in parallel: hand, plus each object reported by /api/wonder. Decode the returned masks into a compact format (per frame: object id, phrase, bounding box, mask as polygon or run-length encoding) and save under data/cache. Report frames billed and cost per clip. Handle: no detections, too many objects, rate limits. Test on clip01 and render one frame with the masks drawn on top as a PNG so I can look at it.
+Prompt 6: Contact rule and data model
+Task: define TypeScript types for Step, MaskTrack, ContactEvent and LabelSource (muse-wonder, muse-spark, sam-3.1, rule, human). Then implement contact detection: a hand and an object are in contact when their masks touch or overlap (allow a small pixel margin) for 3 or more consecutive sampled frames; smooth flicker with a minimum-duration rule. Output ContactEvents with start_s, end_s, hand, object and the features used (overlap area, distance). Write unit tests with at least 5 hand-made cases. Run on clip01 and show me the events beside my ground truth.
+Prompt 7: Review screen from the mockup
+Task: build the review screen from the attached mockup screenshot. Layout: top bar, video and timeline on the left, step list on the right, summary strip at the bottom. Style: warm off-white background #FAF9F5, text #1F1E1D, accent #A64A2A, accepted green #E3EFE8, review amber #FBEBC8, Inter for UI and Source Serif 4 for headings, generous whitespace, 44px minimum touch targets, visible focus states. Use real data from data/results/*.json, never hardcoded text. If no results file exists, show an empty state. Do not wire the live upload yet.
+Prompt 8: Mask overlay
+Task: in the review screen, draw the SAM masks as colored outlines on a canvas layered over the video, synchronized to the video's current time (use requestVideoFrameCallback if available). Hands teal, objects terracotta, each with a small label. Add a toggle to hide masks. Handle videos where the mask frame rate differs from playback frame rate. It must stay smooth on a normal laptop. Test with the processed clip and tell me any frames where outlines drift.
+Prompt 9: Review actions and export
+Task: add review interactions. Each step card can be accepted, or edited (label from the closed vocabulary list, start and end time). Keyboard: J and K move between flagged items, Enter accepts, E edits. Keep edits in browser storage and mark edited labels with source human. Add Export JSON producing one file per clip with steps, contact_events, needs_review flags, reviewer_edited flags, label sources and a review summary (edits, seconds spent). Validate the export against a JSON schema file stored in the repo.
+Prompt 10: Quality engine
+Task: implement the quality engine. Flag a step needs_review when: Wonder and Spark disagree on its label or boundaries by more than 1.5 seconds; a SAM track disappears or its area jumps abnormally; or contact is borderline. Compute a trust score per step from agreement and mask stability. Read thresholds from config/thresholds.json. Include a function that returns the auto-accepted and review sets and the coverage. Write tests for each flag rule. Do not use the models' own confidence numbers as a trust signal.
+Prompt 11: Benchmark (lab)
+Task: in lab/ (Python), write benchmark.py that runs the full pipeline over a clip set (tuning or test, chosen by argument), reading cached API results when available, and compares output with data/ground_truth. Report: median step boundary error, step label match percent, contact balanced accuracy and F1 at 1-second marks, the always-most-common-answer baseline, the raw-model baseline from lab/baseline.py, auto-accept coverage, accuracy on auto-accepted items, and cost in dollars. Write results to results/benchmark_<date>.json and print a readable table. Never run on the test clips unless I pass the flag --final.
+Prompt 12: Live upload with protections
+Task: wire the live flow: upload, prepare, Wonder and Spark runs, SAM in parallel, quality engine, then open the review screen. Show clear stage names with progress. Add safety: an invite code required for live uploads (from an environment variable), a limit of one clip per visitor per hour, maximum clip length 60 seconds, a global daily spend guard that stops calls after a set number of live runs, and automatic deletion of uploaded files. Sample clips must keep working with zero API calls. Handle every failure with a plain message.
+Prompt 13: Error analysis
+Task: write a script that lists every benchmark item where the pipeline was wrong or flagged, grouped by cause (wrong label, boundary off, missed contact, false contact, lost mask), with clip id and timestamp, and an example frame image for the top 10. Summarize the top 3 causes with counts. Suggest fixes ranked by expected gain, but do not apply them yet.
+Prompt 14: Contact classifier
+Task: train a small contact classifier in lab/ (logistic regression or gradient boosting) on features: mask overlap, distance, hand speed, mask stability, and the Wonder answer on a hand crop. Use cross-validation on the tuning clips only. Export the weights to config/scorer.json and load them in the web app. Report balanced accuracy and F1 against the rule-based baseline. Choose the auto-accept threshold on tuning clips so selective accuracy reaches the target, and report the coverage it costs. Do not touch the test clips.
+Prompt 15: Report and provenance
+Task: build the report page. Show: headline numbers read from results/benchmark_final.json (never typed in by hand), the coverage versus accuracy curve, the label source breakdown (muse-wonder, muse-spark, sam-3.1, rule, human), time and cost per clip, and the 5 worst failures with frames. Include a plain-language note on how the numbers were measured and their limits. Keep the same visual style as the review screen.
+Prompt 16: README and release check
+Task: write the README: problem, how it works, architecture, how to run locally, how to reproduce the benchmark, the measured results copied from results/benchmark_final.json, known limits, and credit to the Meta models used. Then audit the repo: confirm no key or secret exists in any file or git history, .env.example is complete, the live app works in a private window with sample clips, and live upload is protected by the invite code. List anything that fails.
+9. When something breaks
+Paste the exact error message and what you did just before it. Ask the agent to explain the cause in plain words before changing anything. If three fix attempts fail, revert to the last git commit and ask for a different approach. If the agent says it cannot find an API format, give it the docs page and do not let it guess. If you are stuck for more than 30 minutes, paste the problem to me.

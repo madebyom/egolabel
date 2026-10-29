@@ -78,6 +78,9 @@ web_modules/
 .next
 out
 
+# Test API response cache (ephemeral, not source)
+data/cache/
+
 # Nuxt.js build / generate output
 .nuxt
 dist
@@ -147,3 +150,4 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+.env.local
